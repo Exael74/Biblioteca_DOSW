@@ -17,27 +17,32 @@ El proyecto sigue un patrón de arquitectura en capas definido dentro del paquet
 Muestra la vista de alto nivel de las capas principales del sistema y cómo interactúan entre sí.
 
 ```mermaid
-flowchart TD
-    subgraph edu.eci.dosw.tdd["edu.eci.dosw.tdd"]
+flowchart LR
+    %% Interfaz Externa (Front/Cliente)
+    Client["Client App / API Client\n(Frontend / REST)"]
+    
+    %% Componentes del Dominio (Backend / Core)
+    subgraph CoreSystem ["LMS Core (edu.eci.dosw.tdd)"]
         direction TB
-        Controller["Controller Layer\n(Controladores, DTOs y Mappers)"]
-        
-        subgraph Core["Core"]
-            direction TB
-            Service["Service Layer\n(Lógica de Negocio)"]
-            Model["Model Layer\n(Entidades de Dominio)"]
-            Validator["Validator Layer\n(Reglas de Negocio)"]
-            Util["Util Layer\n(Herramientas y Utilidades)"]
-            Exception["Exception Layer\n(Excepciones Personalizadas)"]
-            
-            Service -->|Crea/Modifica| Model
-            Service -->|Valida reglas con| Validator
-            Service -->|Apoyado por| Util
-            Validator -.->|Lanza| Exception
-        end
-        
-        Controller -->|Flujo de datos| Service
+        Book["Book Component\n(Módulo de Libros)"]
+        User["User Component\n(Módulo de Usuarios)"]
+        Loan["Loan Component\n(Módulo de Préstamos / Transaction)"]
     end
+    
+    %% Base de Datos (Almacenamiento en Memoria según requerimientos)
+    DB["LMS Database / Storage\n(In-Memory Lists & Maps)"]
+    
+    %% Relaciones y Dependencias
+    Client -->|Requests| Book
+    Client -->|Requests| User
+    Client -->|Requests| Loan
+    
+    Loan -.->|Valida y depende de| Book
+    Loan -.->|Valida y depende de| User
+    
+    Book ==>|Lee/Escribe| DB
+    User ==>|Lee/Escribe| DB
+    Loan ==>|Lee/Escribe| DB
 ```
 
 ### 2. Diagrama de Componentes Específico
