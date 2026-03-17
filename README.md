@@ -51,93 +51,23 @@ Ofrece un nivel de detalle más profundo sobre las clases exactas que conforman 
 
 ```mermaid
 flowchart TB
-    %% Definición de Controladores
-    subgraph Controller_PKG ["controller"]
-        direction TB
-        subgraph DTO ["dto"]
-            BookDTO
-            UserDTO
-            LoanDTO
-        end
-        subgraph Mapper ["mapper"]
-            BookMapper
-            UserMapper
-            LoanMapper
-        end
-        BookController
-        UserController
-        LoanController
-        
-        BookController -.-> BookDTO & BookMapper
-        UserController -.-> UserDTO & UserMapper
-        LoanController -.-> LoanDTO & LoanMapper
-    end
-
-    %% Definición del Core
-    subgraph Core_PKG ["core"]
-        direction TB
-        
-        subgraph Service ["service"]
-            direction LR
-            BookService
-            UserService
-            LoanService
-        end
-
-        subgraph Model ["model"]
-            direction LR
-            Book
-            User
-            Loan
-        end
-
-        subgraph Validator ["validator"]
-            direction LR
-            BookValidator
-            UserValidator
-            LoanValidator
-        end
-
-        subgraph Util ["util"]
-            direction LR
-            ValidationUtil
-            DateUtil
-            IdGeneratorUtil
-        end
-
-        subgraph Exception ["exception"]
-            direction LR
-            BookNotAvailableException
-            UserNotFoundException
-            LoanLimitExceededException
-        end
-    end
-
-    %% Relaciones Controller -> Service
-    BookController --> BookService
-    UserController --> UserService
-    LoanController --> LoanService
-
-    %% Relaciones Service -> Model
-    BookService --> Book
-    UserService --> User
-    LoanService --> Loan
-    LoanService -.-> Book
-    LoanService -.-> User
-
-    %% Relaciones Service -> Validator
-    BookService --> BookValidator
-    UserService --> UserValidator
-    LoanService --> LoanValidator
-
-    %% Relaciones Service/Validator -> Util/Exception
-    Validator -.-> ValidationUtil
-    LoanService -.-> DateUtil
-    Service -.-> IdGeneratorUtil
+    %% Nodos principales
+    LMS_DB["LMS database\n(Lists & Maps)"]
+    Member["Member\n(User Component:\nUserController,\nUserService,\nUser)"]
+    Book["Book\n(Book Component:\nBookController,\nBookService,\nBook)"]
+    Transaction["Transaction\n(Loan Component:\nLoanController,\nLoanService,\nLoan)"]
+    Search["Search\n(Busqueda de Elementos)"]
     
-    BookValidator -.-> BookNotAvailableException
-    UserValidator -.-> UserNotFoundException
-    LoanValidator -.-> LoanLimitExceededException
+    %% Relaciones
+    LMS_DB ---|Acceso a Datos| _Bus
+    _Bus(( )) --- Search
+    _Bus --- Book
+    
+    Transaction -.->|Valida / Asigna| Book
+    Transaction -.->|Relacionado con| Member
+    
+    LMS_DB -.- Member
+    LMS_DB -.- Transaction
 ```
 
 ## Implementación y Pruebas (Ciclo de Calidad)
