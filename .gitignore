@@ -1,0 +1,47 @@
+# Maven / Java build
+/target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE - IntelliJ
+.idea/
+*.iml
+
+# IDE - Eclipse / STS
+.classpath
+.project
+.settings/
+.apt_generated/
+.factorypath
+.springBeans
+.sts4-cache/
+
+# IDE - VS Code
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# Test outputs
+surefire-reports/
+
+# Environment / secrets
+.env
+.env.*
+
+# Optional Spring local overrides
+application-local.yaml
+application-local.yml

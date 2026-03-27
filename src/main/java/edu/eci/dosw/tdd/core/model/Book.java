@@ -13,6 +13,10 @@ public class Book {
     private String id;
     private String title;
     private String author;
+
     @Builder.Default
-    private boolean available = true;
+    private int totalCopies = 1;
+
+    @Builder.Default
+    private int availableCopies = 1;
 }

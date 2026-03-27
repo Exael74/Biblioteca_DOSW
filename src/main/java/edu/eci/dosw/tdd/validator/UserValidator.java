@@ -11,6 +11,9 @@ public class UserValidator {
     public void validateUserForCreation(User user) {
         ValidationUtil.requireNotNull(user, "User cannot be null");
         ValidationUtil.requireNonEmpty(user.getName(), "User name cannot be empty");
+        ValidationUtil.requireNonEmpty(user.getUsername(), "Username cannot be empty");
+        ValidationUtil.requireNonEmpty(user.getPassword(), "Password cannot be empty");
+        ValidationUtil.requireNotNull(user.getRole(), "User role cannot be null");
     }
 
     public void validateUserExists(User user) {

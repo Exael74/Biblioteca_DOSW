@@ -12,12 +12,21 @@ public class BookValidator {
         ValidationUtil.requireNotNull(book, "Book cannot be null");
         ValidationUtil.requireNonEmpty(book.getTitle(), "Book title cannot be empty");
         ValidationUtil.requireNonEmpty(book.getAuthor(), "Book author cannot be empty");
+        if (book.getTotalCopies() < 0) {
+            throw new IllegalArgumentException("Book total copies cannot be negative");
+        }
+        if (book.getAvailableCopies() < 0) {
+            throw new IllegalArgumentException("Book available copies cannot be negative");
+        }
+        if (book.getAvailableCopies() > book.getTotalCopies()) {
+            throw new IllegalArgumentException("Book available copies cannot exceed total copies");
+        }
     }
 
     public void validateBookForLoan(Book book) {
         ValidationUtil.requireNotNull(book, "Book cannot be null");
-        if (!book.isAvailable()) {
-            throw new BookNotAvailableException("Book is already loaned out");
+        if (book.getAvailableCopies() <= 0) {
+            throw new BookNotAvailableException("Book has no available copies");
         }
     }
 }

@@ -1,41 +1,41 @@
 package edu.eci.dosw.tdd.core.service;
 
 import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.exception.UserNotFoundException;
+import edu.eci.dosw.tdd.persistence.entity.UserEntity;
+import edu.eci.dosw.tdd.persistence.mapper.UserPersistenceMapper;
+import edu.eci.dosw.tdd.persistence.repository.UserRepository;
 import edu.eci.dosw.tdd.util.IdGeneratorUtil;
 import edu.eci.dosw.tdd.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserValidator userValidator;
-    
-    // In-Memory Database
-    private final Map<String, User> userMap = new ConcurrentHashMap<>();
+    private final UserRepository userRepository;
+    private final UserPersistenceMapper userMapper;
 
+    @Transactional
     public User addUser(User user) {
         userValidator.validateUserForCreation(user);
         if (user.getId() == null) {
             user.setId(IdGeneratorUtil.generateId());
         }
-        userMap.put(user.getId(), user);
-        return user;
+        UserEntity saved = userRepository.save(userMapper.toEntity(user));
+        return userMapper.toDomain(saved);
     }
 
     public List<User> getAllUsers() {
-        return new ArrayList<>(userMap.values());
+        return userRepository.findAll().stream().map(userMapper::toDomain).toList();
     }
 
     public User getUserById(String id) {
-        User user = userMap.get(id);
+        User user = userRepository.findById(id).map(userMapper::toDomain).orElse(null);
         userValidator.validateUserExists(user);
         return user;
     }

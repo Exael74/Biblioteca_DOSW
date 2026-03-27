@@ -15,7 +15,17 @@ import java.util.List;
 public class User {
     private String id;
     private String name;
+    private String username;
+    private String password;
+
+    @Builder.Default
+    private Role role = Role.USER;
     
     @Builder.Default
     private List<Loan> loans = new ArrayList<>();
+
+    public enum Role {
+        LIBRARIAN,
+        USER
+    }
 }
