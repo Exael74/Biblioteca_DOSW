@@ -7,6 +7,7 @@ import edu.eci.dosw.tdd.persistence.repository.UserRepository;
 import edu.eci.dosw.tdd.util.IdGeneratorUtil;
 import edu.eci.dosw.tdd.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class UserService {
     private final UserValidator userValidator;
     private final UserRepository userRepository;
     private final UserPersistenceMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public User addUser(User user) {
@@ -26,6 +28,7 @@ public class UserService {
         if (user.getId() == null) {
             user.setId(IdGeneratorUtil.generateId());
         }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         UserEntity saved = userRepository.save(userMapper.toEntity(user));
         return userMapper.toDomain(saved);
     }
@@ -38,5 +41,9 @@ public class UserService {
         User user = userRepository.findById(id).map(userMapper::toDomain).orElse(null);
         userValidator.validateUserExists(user);
         return user;
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username).map(userMapper::toDomain).orElse(null);
     }
 }

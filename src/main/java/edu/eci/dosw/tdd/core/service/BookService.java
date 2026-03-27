@@ -35,6 +35,10 @@ public class BookService {
         return bookRepository.findAll().stream().map(bookMapper::toDomain).toList();
     }
 
+    public List<Book> getAvailableBooks() {
+        return bookRepository.findByAvailableCopiesGreaterThan(0).stream().map(bookMapper::toDomain).toList();
+    }
+
     public Book getBookById(String id) {
         return bookRepository.findById(id)
                 .map(bookMapper::toDomain)
@@ -59,6 +63,23 @@ public class BookService {
             throw new IllegalStateException("Cannot increase available copies beyond total copies");
         }
         entity.setAvailableCopies(entity.getAvailableCopies() + 1);
+        return bookMapper.toDomain(bookRepository.save(entity));
+    }
+
+    @Transactional
+    public Book updateInventory(String id, int totalCopies, int availableCopies) {
+        BookEntity entity = bookRepository.findById(id)
+                .orElseThrow(() -> new BookNotAvailableException("Book with ID " + id + " not found."));
+        Book candidate = Book.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .author(entity.getAuthor())
+                .totalCopies(totalCopies)
+                .availableCopies(availableCopies)
+                .build();
+        bookValidator.validateBookForCreation(candidate);
+        entity.setTotalCopies(totalCopies);
+        entity.setAvailableCopies(availableCopies);
         return bookMapper.toDomain(bookRepository.save(entity));
     }
 }

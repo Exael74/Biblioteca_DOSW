@@ -77,7 +77,24 @@ public class LoanService {
         return loanMapper.toDomain(saved);
     }
 
+    @Transactional
+    public Loan returnBookForUser(String loanId, String userId) {
+        LoanEntity loan = loanRepository.findByIdAndUser_Id(loanId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Loan with ID " + loanId + " not found for user."));
+        if (loan.getStatus() == Loan.Status.RETURNED) {
+            throw new IllegalArgumentException("Loan is already returned.");
+        }
+        loan.setStatus(Loan.Status.RETURNED);
+        bookService.increaseAvailableStock(loan.getBook().getId());
+        LoanEntity saved = loanRepository.save(loan);
+        return loanMapper.toDomain(saved);
+    }
+
     public List<Loan> getAllLoans() {
         return loanRepository.findAll().stream().map(loanMapper::toDomain).toList();
+    }
+
+    public List<Loan> getLoansByUser(String userId) {
+        return loanRepository.findByUser_Id(userId).stream().map(loanMapper::toDomain).toList();
     }
 }

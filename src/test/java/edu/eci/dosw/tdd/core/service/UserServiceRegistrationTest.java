@@ -4,9 +4,11 @@ import edu.eci.dosw.tdd.core.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
@@ -15,6 +17,9 @@ class UserServiceRegistrationTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     void shouldAllowUserToRegisterWithCustomUsernameAndPassword() {
@@ -28,7 +33,7 @@ class UserServiceRegistrationTest {
         User saved = userService.addUser(user);
 
         assertEquals("carlitos", saved.getUsername());
-        assertEquals("my-own-password", saved.getPassword());
+        assertTrue(passwordEncoder.matches("my-own-password", saved.getPassword()));
     }
 
     @Test

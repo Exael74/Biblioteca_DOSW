@@ -11,3 +11,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+
+security:
+  jwt:
+    secret: ZGV2c2VjcmV0LXRlc3Qtc2VjcmV0LWRldnNlY3JldC10ZXN0LXNlY3JldA==
+    expiration-ms: 3600000
+  cors:
+    allowed-origins: http://localhost:3000
+  require-https: false
