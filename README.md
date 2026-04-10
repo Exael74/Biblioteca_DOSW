@@ -33,27 +33,52 @@ flowchart LR
     Loan ==>|Lee/Escribe| DB
 ```
 
-### 2. Diagrama de Componentes Específico
+### 2. Diagrama de Arquitectura y Componentes Hexagonal
+
+Muestra el flujo de información desde la petición hasta las dos fuentes de persistencia reales.
 
 ```mermaid
 flowchart TB
-    %% Nodos principales
-    LMS_DB["LMS database\n(Lists & Maps)"]
-    Member["Member\n(User Component:\nUserController,\nUserService,\nUser)"]
-    Book["Book\n(Book Component:\nBookController,\nBookService,\nBook)"]
-    Transaction["Transaction\n(Loan Component:\nLoanController,\nLoanService,\nLoan)"]
-    Search["Search\n(Busqueda de Elementos)"]
+    %% Interfaz Externa
+    Client["Client (REST / Web / Postman)"]
     
-    %% Relaciones
-    LMS_DB ---|Acceso a Datos| _Bus
-    _Bus(( )) --- Search
-    _Bus --- Book
+    %% Capa Web y Seguridad
+    subgraph WebLayer ["Capa Web y Seguridad (Inbound)"]
+        Security["Security Filter\n(Filtro JWT / AuthProvider)"]
+        Controllers["REST Controllers\n(AuthController, BookController,\nUserController, LoanController)"]
+    end
     
-    Transaction -.->|Valida / Asigna| Book
-    Transaction -.->|Relacionado con| Member
+    %% Dominio (Core)
+    subgraph CoreDomain ["Capa Core (Dominio)"]
+        Services["Services\n(BookService, UserService, LoanService)"]
+        Models["Domain Models\n(Book, User, Loan)"]
+        Ports["Ports\n(BookRepository, UserRepository,\nLoanRepository)"]
+    end
     
-    LMS_DB -.- Member
-    LMS_DB -.- Transaction
+    %% Capa Persistencia (Adaptadores)
+    subgraph PersistenceLayer ["Capa de Persistencia (Outbound)"]
+        Relational["Relational Adapters\n(Mapeo a Entity + JpaRepository)"]
+        NonRelational["Non-Relational Adapters\n(Mapeo a Document + MongoRepository)"]
+    end
+    
+    %% Bases de Datos
+    PostgreSQL[(PostgreSQL)]
+    MongoDB[(MongoDB)]
+    
+    %% Relaciones de control de flujo
+    Client -->|HTTP Requests| Security
+    Security -->|Token Válido| Controllers
+    Controllers -->|DTO > Modelo| Services
+    Services -.->|Reglas Negocio| Models
+    Services -->|Delega guardado| Ports
+    
+    %% Inversion de Dependencia
+    Relational -.->|Implementa| Ports
+    NonRelational -.->|Implementa| Ports
+    
+    %% Conexiones Fisicas a BD
+    Relational ==>|SQL / JDBC| PostgreSQL
+    NonRelational ==>|JSON / BSON| MongoDB
 ```
 
 
@@ -150,3 +175,7 @@ Referencia a `users` y `books` por ID. Embebe un **snapshot** del libro al momen
 ```
 
 > **Nota de diseño:** `bookSnapshot` es embebido porque registra los datos del libro *tal como eran en el momento del prestamo*. Si el libro se actualiza despues, el historial permanece intacto. `userId` y `bookId` son referencias logicas (como foreign keys) para las operaciones de negocio.
+
+
+## DIAGRAMA DE CLASES
+![alt text](<Diagrama de clases.svg>)
