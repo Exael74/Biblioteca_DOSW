@@ -1,24 +1,2 @@
 package edu.eci.dosw.tdd.validator;
-
-import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.exception.UserNotFoundException;
-import edu.eci.dosw.tdd.util.ValidationUtil;
-import org.springframework.stereotype.Component;
-
-@Component
-public class UserValidator {
-
-    public void validateUserForCreation(User user) {
-        ValidationUtil.requireNotNull(user, "User cannot be null");
-        ValidationUtil.requireNonEmpty(user.getName(), "User name cannot be empty");
-        ValidationUtil.requireNonEmpty(user.getUsername(), "Username cannot be empty");
-        ValidationUtil.requireNonEmpty(user.getPassword(), "Password cannot be empty");
-        ValidationUtil.requireNotNull(user.getRole(), "User role cannot be null");
-    }
-
-    public void validateUserExists(User user) {
-        if (user == null) {
-            throw new UserNotFoundException("User not found in the system");
-        }
-    }
-}
+/* deleted */

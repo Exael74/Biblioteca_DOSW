@@ -1,69 +1,77 @@
 package edu.eci.dosw.tdd.controller;
 
-import edu.eci.dosw.tdd.controller.dto.BorrowBookRequest;
+import edu.eci.dosw.tdd.controller.dto.LoanDTO;
+import edu.eci.dosw.tdd.controller.mapper.LoanMapper;
 import edu.eci.dosw.tdd.core.model.Loan;
-import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.core.service.AuthService;
 import edu.eci.dosw.tdd.core.service.LoanService;
-import edu.eci.dosw.tdd.security.CustomUserPrincipal;
-import jakarta.validation.Valid;
-import org.springframework.security.access.annotation.Secured;
+import edu.eci.dosw.tdd.core.util.SecurityUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/loans")
+@RequestMapping("/api/loans")
 public class LoanController {
 
     private final LoanService loanService;
-    private final AuthService authService;
+    private final LoanMapper loanMapper;
+    private final SecurityUtils securityUtils;
 
-    public LoanController(LoanService loanService, AuthService authService) {
+    public LoanController(LoanService loanService, LoanMapper loanMapper, SecurityUtils securityUtils) {
         this.loanService = loanService;
-        this.authService = authService;
+        this.loanMapper = loanMapper;
+        this.securityUtils = securityUtils;
     }
 
-    @Secured("ROLE_USER")
-    @PostMapping
-    public Loan borrowBook(@AuthenticationPrincipal CustomUserPrincipal principal,
-                           @Valid @RequestBody BorrowBookRequest request) {
-        User user = authService.getAuthenticatedUser(principal);
-        return loanService.borrowBook(request.bookId(), user.getId());
+    @PostMapping("/book/{bookId}/user/{userId}")
+    @PreAuthorize("hasRole('LIBRARIAN') or @securityUtils.isOwner(#userId)")
+    public ResponseEntity<LoanDTO> createLoan(@PathVariable String bookId, @PathVariable String userId) {
+        Loan loan = loanService.createLoan(bookId, userId);
+        return new ResponseEntity<>(loanMapper.toDTO(loan), HttpStatus.CREATED);
     }
 
-    @Secured("ROLE_USER")
-    @PatchMapping("/{loanId}/return")
-    public Loan returnOwnLoan(@AuthenticationPrincipal CustomUserPrincipal principal,
-                              @PathVariable String loanId) {
-        User user = authService.getAuthenticatedUser(principal);
-        return loanService.returnBookForUser(loanId, user.getId());
+    @PostMapping("/{loanId}/return")
+    public ResponseEntity<LoanDTO> returnLoan(@PathVariable String loanId) {
+        loanService.validateLoanOwnership(loanId, securityUtils.getCurrentUserId(), securityUtils.isLibrarian());
+        Loan loan = loanService.returnLoan(loanId);
+        return ResponseEntity.ok(loanMapper.toDTO(loan));
     }
 
-    @PreAuthorize("hasRole('USER')")
-    @GetMapping("/me")
-    public List<Loan> getOwnLoans(@AuthenticationPrincipal CustomUserPrincipal principal) {
-        User user = authService.getAuthenticatedUser(principal);
-        return loanService.getLoansByUser(user.getId());
-    }
-
-    @Secured("ROLE_LIBRARIAN")
     @GetMapping
-    public List<Loan> getAllLoans() {
-        return loanService.getAllLoans();
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    public ResponseEntity<List<LoanDTO>> getAllLoans() {
+        List<LoanDTO> loans = loanService.getAllLoans().stream()
+                .map(loanMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(loans);
     }
 
-    @Secured("ROLE_LIBRARIAN")
-    @PatchMapping("/{loanId}/return/admin")
-    public Loan returnAnyLoan(@PathVariable String loanId) {
-        return loanService.returnBook(loanId);
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('LIBRARIAN') or @securityUtils.isOwner(#userId)")
+    public ResponseEntity<List<LoanDTO>> getLoansByUser(@PathVariable String userId) {
+        List<LoanDTO> loans = loanService.getLoansByUserId(userId).stream()
+                .map(loanMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(loans);
+    }
+
+    @GetMapping("/my-loans")
+    public ResponseEntity<List<LoanDTO>> getMyLoans() {
+        String userId = securityUtils.getCurrentUserId();
+        List<LoanDTO> loans = loanService.getLoansByUserId(userId).stream()
+                .map(loanMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(loans);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    public ResponseEntity<Void> deleteLoan(@PathVariable String id) {
+        loanService.deleteLoan(id);
+        return ResponseEntity.noContent().build();
     }
 }

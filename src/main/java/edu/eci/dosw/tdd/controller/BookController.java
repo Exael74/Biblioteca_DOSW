@@ -1,52 +1,65 @@
 package edu.eci.dosw.tdd.controller;
 
-import edu.eci.dosw.tdd.controller.dto.CreateBookRequest;
-import edu.eci.dosw.tdd.controller.dto.UpdateInventoryRequest;
+import edu.eci.dosw.tdd.controller.dto.BookDTO;
+import edu.eci.dosw.tdd.controller.mapper.BookMapper;
 import edu.eci.dosw.tdd.core.model.Book;
 import edu.eci.dosw.tdd.core.service.BookService;
 import jakarta.validation.Valid;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/books")
+@RequestMapping("/api/books")
 public class BookController {
 
     private final BookService bookService;
+    private final BookMapper bookMapper;
 
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, BookMapper bookMapper) {
         this.bookService = bookService;
-    }
-
-    @Secured("ROLE_LIBRARIAN")
-    @PostMapping
-    public Book createBook(@Valid @RequestBody CreateBookRequest request) {
-        return bookService.addBook(Book.builder()
-                .title(request.title())
-                .author(request.author())
-                .totalCopies(request.totalCopies())
-                .availableCopies(request.availableCopies())
-                .build());
+        this.bookMapper = bookMapper;
     }
 
     @PreAuthorize("hasRole('LIBRARIAN')")
-    @PatchMapping("/{id}/inventory")
-    public Book updateInventory(@PathVariable String id, @Valid @RequestBody UpdateInventoryRequest request) {
-        return bookService.updateInventory(id, request.totalCopies(), request.availableCopies());
+    @PostMapping
+    public ResponseEntity<BookDTO> addBook(@Valid @RequestBody BookDTO bookDTO) {
+        Book book = bookMapper.toDomain(bookDTO);
+        Book savedBook = bookService.addBook(book);
+        return new ResponseEntity<>(bookMapper.toDTO(savedBook), HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAnyRole('USER','LIBRARIAN')")
-    @GetMapping("/available")
-    public List<Book> getAvailableBooks() {
-        return bookService.getAvailableBooks();
+    @GetMapping
+    public ResponseEntity<List<BookDTO>> getAllBooks() {
+        List<BookDTO> books = bookService.getAllBooks().stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(books);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookDTO> getBookById(@PathVariable String id) {
+        Book book = bookService.getBookById(id);
+        return ResponseEntity.ok(bookMapper.toDTO(book));
+    }
+
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PutMapping("/{id}/stock")
+    public ResponseEntity<BookDTO> updateStock(@PathVariable String id,
+                                               @RequestParam int totalStock,
+                                               @RequestParam int availableCopies) {
+        Book updated = bookService.updateStock(id, totalStock, availableCopies);
+        return ResponseEntity.ok(bookMapper.toDTO(updated));
+    }
+
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBook(@PathVariable String id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
     }
 }

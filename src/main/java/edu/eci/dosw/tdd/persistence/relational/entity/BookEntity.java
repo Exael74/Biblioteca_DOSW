@@ -5,19 +5,20 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Entity
-@Table(name = "books")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "books")
 public class BookEntity {
 
     @Id
+    @Column(nullable = false, updatable = false)
     private String id;
 
     @Column(nullable = false)
@@ -26,9 +27,9 @@ public class BookEntity {
     @Column(nullable = false)
     private String author;
 
-    @Column(name = "total_copies", nullable = false)
-    private int totalCopies;
+    @Column(nullable = false)
+    private int totalStock;
 
-    @Column(name = "available_copies", nullable = false)
+    @Column(nullable = false)
     private int availableCopies;
 }

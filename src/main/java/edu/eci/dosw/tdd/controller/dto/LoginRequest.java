@@ -1,9 +1,15 @@
 package edu.eci.dosw.tdd.controller.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record LoginRequest(
-        @NotBlank(message = "Username is required") String username,
-        @NotBlank(message = "Password is required") String password
-) {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginRequest {
+    private String username;
+    private String password;
 }

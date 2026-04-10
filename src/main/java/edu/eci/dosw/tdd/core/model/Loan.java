@@ -1,28 +1,36 @@
 package edu.eci.dosw.tdd.core.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Loan {
+
     private String id;
     private Book book;
     private User user;
-    private LocalDateTime loanDate;
-    private LocalDateTime returnDate;
-    
-    @Builder.Default
-    private Status status = Status.ACTIVE;
+    private LocalDate loanDate;
+    private LoanStatus status;
+    private LocalDate returnDate;
 
-    public enum Status {
-        ACTIVE,
-        RETURNED
+    // Campo extendido para MongoDB - historial del préstamo
+    private List<LoanHistoryEntry> history = new ArrayList<>();
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LoanHistoryEntry {
+        private String status;
+        private LocalDate date;
     }
 }

@@ -1,100 +1,122 @@
 package edu.eci.dosw.tdd.core.service;
 
+import edu.eci.dosw.tdd.core.exception.BookNotAvailableException;
+import edu.eci.dosw.tdd.core.exception.UserNotFoundException;
 import edu.eci.dosw.tdd.core.model.Book;
 import edu.eci.dosw.tdd.core.model.Loan;
+import edu.eci.dosw.tdd.core.model.LoanStatus;
 import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.persistence.relational.entity.LoanEntity;
-import edu.eci.dosw.tdd.persistence.relational.mapper.LoanPersistenceMapper;
-import edu.eci.dosw.tdd.persistence.relational.repository.BookRepository;
-import edu.eci.dosw.tdd.persistence.relational.repository.LoanRepository;
-import edu.eci.dosw.tdd.persistence.relational.repository.UserRepository;
-import edu.eci.dosw.tdd.util.DateUtil;
-import edu.eci.dosw.tdd.util.IdGeneratorUtil;
-import edu.eci.dosw.tdd.validator.LoanValidator;
-import lombok.RequiredArgsConstructor;
+import edu.eci.dosw.tdd.core.util.ApiMessages;
+import edu.eci.dosw.tdd.persistence.BookRepository;
+import edu.eci.dosw.tdd.persistence.LoanRepository;
+import edu.eci.dosw.tdd.persistence.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class LoanService {
 
-    private final BookService bookService;
-    private final UserService userService;
-    private final LoanValidator loanValidator;
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
-    private final LoanPersistenceMapper loanMapper;
 
-    @Transactional
-    public Loan borrowBook(String bookId, String userId) {
-        Book book = bookService.getBookById(bookId);
-        User user = userService.getUserById(userId);
-        long activeLoans = loanRepository.countByUser_IdAndStatus(userId, Loan.Status.ACTIVE);
-        loanValidator.validateLoanCreation(user, activeLoans);
-        bookService.decreaseAvailableStock(bookId);
-
-        LocalDateTime loanDate = DateUtil.getCurrentDateTime();
-        
-        Loan loan = Loan.builder()
-                .id(IdGeneratorUtil.generateId())
-                .book(book)
-                .user(user)
-                .loanDate(loanDate)
-                .returnDate(DateUtil.getReturnDate(loanDate, 14)) // 14 days standard loan
-                .status(Loan.Status.ACTIVE)
-                .build();
-
-        LoanEntity loanEntity = LoanEntity.builder()
-            .id(loan.getId())
-            .book(bookRepository.findById(bookId).orElseThrow())
-            .user(userRepository.findById(userId).orElseThrow())
-            .loanDate(loan.getLoanDate())
-            .returnDate(loan.getReturnDate())
-            .status(loan.getStatus())
-            .build();
-
-        LoanEntity saved = loanRepository.save(loanEntity);
-        return loanMapper.toDomain(saved);
+    public LoanService(LoanRepository loanRepository,
+                       BookRepository bookRepository,
+                       UserRepository userRepository) {
+        this.loanRepository = loanRepository;
+        this.bookRepository = bookRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public Loan returnBook(String loanId) {
-        LoanEntity loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new IllegalArgumentException("Loan with ID " + loanId + " not found."));
-        if (loan.getStatus() == Loan.Status.RETURNED) {
-            throw new IllegalArgumentException("Loan is already returned.");
+    public Loan createLoan(String bookId, String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(ApiMessages.USER_NOT_FOUND));
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new BookNotAvailableException(ApiMessages.BOOK_NOT_FOUND));
+
+        if (book.getAvailableCopies() <= 0) {
+            throw new BookNotAvailableException(ApiMessages.BOOK_NOT_AVAILABLE);
         }
 
-        loan.setStatus(Loan.Status.RETURNED);
-        bookService.increaseAvailableStock(loan.getBook().getId());
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
+        bookRepository.save(book);
 
-        LoanEntity saved = loanRepository.save(loan);
-        return loanMapper.toDomain(saved);
+        Loan loan = new Loan();
+        loan.setId(UUID.randomUUID().toString());
+        loan.setBook(book);
+        loan.setUser(user);
+        loan.setLoanDate(LocalDate.now());
+        loan.setStatus(LoanStatus.ACTIVE);
+
+        // Agregar entrada al historial
+        List<Loan.LoanHistoryEntry> history = new ArrayList<>();
+        history.add(new Loan.LoanHistoryEntry("ACTIVE", LocalDate.now()));
+        loan.setHistory(history);
+
+        return loanRepository.save(loan);
     }
 
     @Transactional
-    public Loan returnBookForUser(String loanId, String userId) {
-        LoanEntity loan = loanRepository.findByIdAndUser_Id(loanId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Loan with ID " + loanId + " not found for user."));
-        if (loan.getStatus() == Loan.Status.RETURNED) {
-            throw new IllegalArgumentException("Loan is already returned.");
+    public Loan returnLoan(String loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException(ApiMessages.LOAN_NOT_FOUND));
+
+        if (loan.getStatus() == LoanStatus.RETURNED) {
+            throw new IllegalStateException(ApiMessages.LOAN_ALREADY_RETURNED);
         }
-        loan.setStatus(Loan.Status.RETURNED);
-        bookService.increaseAvailableStock(loan.getBook().getId());
-        LoanEntity saved = loanRepository.save(loan);
-        return loanMapper.toDomain(saved);
+
+        loan.setStatus(LoanStatus.RETURNED);
+        loan.setReturnDate(LocalDate.now());
+
+        // Agregar entrada al historial
+        if (loan.getHistory() == null) {
+            loan.setHistory(new ArrayList<>());
+        }
+        loan.getHistory().add(new Loan.LoanHistoryEntry("RETURNED", LocalDate.now()));
+
+        Book book = bookRepository.findById(loan.getBook().getId())
+                .orElseThrow(() -> new BookNotAvailableException(ApiMessages.BOOK_NOT_FOUND));
+
+        if (book.getAvailableCopies() < book.getTotalStock()) {
+            book.setAvailableCopies(book.getAvailableCopies() + 1);
+            bookRepository.save(book);
+        }
+
+        return loanRepository.save(loan);
+    }
+
+    @Transactional
+    public void deleteLoan(String loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException(ApiMessages.LOAN_NOT_FOUND));
+        if (loan.getStatus() == LoanStatus.ACTIVE) {
+            throw new IllegalStateException(ApiMessages.LOAN_CANNOT_DELETE_ACTIVE);
+        }
+        loanRepository.deleteById(loanId);
+    }
+
+    public void validateLoanOwnership(String loanId, String currentUserId, boolean isLibrarian) {
+        if (isLibrarian) return;
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException(ApiMessages.LOAN_NOT_FOUND));
+        if (!loan.getUser().getId().equals(currentUserId)) {
+            throw new AccessDeniedException("No puedes operar sobre préstamos de otros usuarios");
+        }
     }
 
     public List<Loan> getAllLoans() {
-        return loanRepository.findAll().stream().map(loanMapper::toDomain).toList();
+        return loanRepository.findAll();
     }
 
-    public List<Loan> getLoansByUser(String userId) {
-        return loanRepository.findByUser_Id(userId).stream().map(loanMapper::toDomain).toList();
+    public List<Loan> getLoansByUserId(String userId) {
+        return loanRepository.findByUserId(userId);
     }
 }

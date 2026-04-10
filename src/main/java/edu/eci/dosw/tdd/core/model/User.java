@@ -1,31 +1,33 @@
 package edu.eci.dosw.tdd.core.model;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+
     private String id;
+
+    @NotBlank(message = "El nombre del usuario es obligatorio")
     private String name;
+
+    @NotBlank(message = "El username es obligatorio")
     private String username;
+
     private String password;
 
-    @Builder.Default
-    private Role role = Role.USER;
-    
-    @Builder.Default
-    private List<Loan> loans = new ArrayList<>();
+    private Role role;
 
-    public enum Role {
-        LIBRARIAN,
-        USER
-    }
+    // Campos extendidos para MongoDB
+    private String email;
+    private String membershipType; // VIP, PLATINUM, STANDARD
+    private LocalDate registrationDate;
 }

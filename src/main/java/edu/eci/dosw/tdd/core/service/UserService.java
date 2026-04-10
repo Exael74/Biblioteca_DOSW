@@ -1,49 +1,43 @@
 package edu.eci.dosw.tdd.core.service;
 
+import edu.eci.dosw.tdd.core.exception.UserNotFoundException;
 import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.persistence.relational.entity.UserEntity;
-import edu.eci.dosw.tdd.persistence.relational.mapper.UserPersistenceMapper;
-import edu.eci.dosw.tdd.persistence.relational.repository.UserRepository;
-import edu.eci.dosw.tdd.util.IdGeneratorUtil;
-import edu.eci.dosw.tdd.validator.UserValidator;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import edu.eci.dosw.tdd.core.util.ApiMessages;
+import edu.eci.dosw.tdd.persistence.LoanRepository;
+import edu.eci.dosw.tdd.persistence.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
-    private final UserValidator userValidator;
     private final UserRepository userRepository;
-    private final UserPersistenceMapper userMapper;
-    private final PasswordEncoder passwordEncoder;
+    private final LoanRepository loanRepository;
 
-    @Transactional
-    public User addUser(User user) {
-        userValidator.validateUserForCreation(user);
-        if (user.getId() == null) {
-            user.setId(IdGeneratorUtil.generateId());
-        }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        UserEntity saved = userRepository.save(userMapper.toEntity(user));
-        return userMapper.toDomain(saved);
+    public UserService(UserRepository userRepository, LoanRepository loanRepository) {
+        this.userRepository = userRepository;
+        this.loanRepository = loanRepository;
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll().stream().map(userMapper::toDomain).toList();
+        return userRepository.findAll();
     }
 
     public User getUserById(String id) {
-        User user = userRepository.findById(id).map(userMapper::toDomain).orElse(null);
-        userValidator.validateUserExists(user);
-        return user;
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(ApiMessages.USER_NOT_FOUND));
     }
 
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username).map(userMapper::toDomain).orElse(null);
+    @Transactional
+    public void deleteUser(String id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(ApiMessages.USER_NOT_FOUND));
+        if (loanRepository.existsByUserIdAndStatus(id, "ACTIVE")) {
+            throw new IllegalStateException(ApiMessages.USER_HAS_ACTIVE_LOANS);
+        }
+        loanRepository.deleteByUserId(id);
+        userRepository.deleteById(id);
     }
 }
