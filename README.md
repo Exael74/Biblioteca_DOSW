@@ -178,4 +178,7 @@ Referencia a `users` y `books` por ID. Embebe un **snapshot** del libro al momen
 
 
 ## DIAGRAMA DE CLASES
+
+Click derecho sobre la imagen y abrelo en una nueva ventana para abrir el .svg y que puedas visualizar correctamente el diagrama de clases
+
 ![alt text](<Diagrama de clases.svg>)
