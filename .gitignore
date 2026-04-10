@@ -45,3 +45,7 @@ surefire-reports/
 # Optional Spring local overrides
 application-local.yaml
 application-local.yml
+
+
+# Especifico
+README.md

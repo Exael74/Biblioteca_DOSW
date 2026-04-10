@@ -1,4 +1,4 @@
-package edu.eci.dosw.tdd.persistence.entity;
+package edu.eci.dosw.tdd.persistence.relational.entity;
 
 import edu.eci.dosw.tdd.core.model.Loan;
 import jakarta.persistence.Column;

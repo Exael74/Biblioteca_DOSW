@@ -11,6 +11,10 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/library_test_db
+      database: library_test_db
 
 security:
   jwt:

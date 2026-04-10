@@ -1,9 +1,9 @@
 package edu.eci.dosw.tdd.core.service;
 
 import edu.eci.dosw.tdd.core.model.User;
-import edu.eci.dosw.tdd.persistence.entity.UserEntity;
-import edu.eci.dosw.tdd.persistence.mapper.UserPersistenceMapper;
-import edu.eci.dosw.tdd.persistence.repository.UserRepository;
+import edu.eci.dosw.tdd.persistence.relational.entity.UserEntity;
+import edu.eci.dosw.tdd.persistence.relational.mapper.UserPersistenceMapper;
+import edu.eci.dosw.tdd.persistence.relational.repository.UserRepository;
 import edu.eci.dosw.tdd.util.IdGeneratorUtil;
 import edu.eci.dosw.tdd.validator.UserValidator;
 import lombok.RequiredArgsConstructor;

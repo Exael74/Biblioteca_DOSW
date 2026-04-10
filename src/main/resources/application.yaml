@@ -12,6 +12,10 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    mongodb:
+      uri: mongodb+srv://<username>:<pwd>@cluster.mongodb.net/library_db
+      database: library_db
 
 server:
   port: 8080
